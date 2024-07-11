@@ -1,0 +1,398 @@
+----------- PMSDR 2.0/2.1 support on GNU/Linux -----------
+-
+- Andrea Montefusco IW0HDV, andrew att montefusco dott com
+-
+
+. Introduction
+
+This software manages an PMSDR hardware version 2.0 and 2.1 on *nix operating systems.
+As per the current state of the development (Aug 2010) the PMSDR doesn't have 
+any A/D conversion capability, therefore the availability of an audio card with duplex 
+capability is mandatory.
+
+Moreover, to use PMSDR as a true radio, you need additional software;
+a very good procedure to build a complete receiver environment on Linux has been
+written by Patrick DH2SPK and is available to the folowing URL:
+
+http://www.dh2spk.de/amateurfunk/sdr/howto_pmsdr_linux.txt
+
+The above procedure uses the well known DttSP DSP module (written by Frank Brickle and Bob McGwier) 
+and  the (somewhat old) GUI written by Edson Pereira with minor changes by me.
+For more information see:
+http://code.google.com/p/sdr-shell/source/browse/#svn/branches/pmsdr and 
+http://code.google.com/p/sdr-shell/w/list).
+
+For other software (currently under development), please feel free to contact me at email above.
+
+
+
+. Installation
+
+At the moment there are no binary packages available for pmsdr, therefore 
+you will have to compile it from the sources.
+
+The following notes are been tested on Ubuntu 8.04, 9.04 and 10.04 running the command
+as user andrew. Feel free to change this user name with your current user.
+It is advisable (and safer) that you don't work as root.
+
+
+The pmsdr program has two prerequisite library: libusb-1.0 and GNU Readline
+
+-- Install the libusb 1.0
+
+To install the libusb 1.0 from the precompiled packages in Debian and derivatives (Ubuntu)
+submit the following command:
+
+sudo  apt-get install libusb-1.0-0-dev
+
+if you prefer install libusb-1.0 from sources (or you are working with an old distribution like Ubuntu 8.04
+that doesn't support it as binary package), start up any browser and go to libusb 1.0 Sourceforge page:
+
+http://libusb.wiki.sourceforge.net/Libusb1.0
+
+To download and compile it from the command line (as normal user), please follow these instructions:
+
+# install wget utility
+sudo apt-get install wget
+# go home directory
+cd ~ 
+# download the package
+wget http://downloads.sourceforge.net/libusb/libusb-1.0.0.tar.bz2
+# unzip it
+bunzip2 libusb-1.0.0.tar.bz2 
+# create the directory tree
+tar -xvf libusb-1.0.0.tar
+# go into it
+cd libusb-1.0.0
+# configure, compile and install
+./configure
+make
+sudo make install
+sudo ldconfig
+
+
+-- Install GNU readline:
+
+sudo apt-get install libncurses5-dev libreadline5-dev
+
+
+-- Download and compile the pmsdr executable:
+
+There are two options to compile pmsdr support: getting sources from tarball 
+or extracting them from SVN repository.
+If you don't needs to change the code, go with tarball
+
+
+-- Compile getting the sources from tarball
+
+Download the source tarball from Sourceforge:
+
+wget https://downloads.sourceforge.net/project/pmsdr/pmsdr-2.4.1.tar.gz
+
+(Anyway check, on the project page, that the above package is the more recent stable one)
+
+Extract sources:
+
+cd
+tar -zxvf pmsdr-2.4.1.tar.gz
+
+cd pmsdr-2.4.1/
+./configure && make && sudo make install
+
+
+-- Compile extracting sources from SVN repository:
+
+Follow this procedure only if you aim to do some change the the code.
+Install SVN and autoconf/automake packages:
+
+sudo apt-get install subversion autoconf automake autotools-dev
+
+Extract the code from SVN repository on Sourceforge:
+
+cd ~
+svn co https://pmsdr.svn.sourceforge.net/svnroot/pmsdr/trunk/linux pmsdr 
+cd ~/pmsdr
+
+Compile with:
+
+./bootstrap.sh
+./configure
+make
+sudo make install
+
+
+-- Run pmsdr
+
+Create a new group (e.g. pmsdrusb):
+
+    sudo groupadd pmsdrusb
+
+Add to this group the user you use to start pmsdr:
+
+    sudo usermod -a -G pmsdrusb andrew
+    
+Configure the udev subsystem to assign Pmsdr USB devices to the rigth group:
+First of all become root:
+ 
+sudo su - root
+
+Next cut and paste the following commands:
+
+cat > /etc/udev/rules.d/95-pmsdr.rules << XXYY
+#
+# udev rules file for Microchip 18F4455 USB Micro (PMSDR)
+#
+ACTION=="add", SUBSYSTEM=="usb", SYSFS{idVendor}=="04d8", SYSFS{idProduct}=="000c", GROUP="pmsdrusb"
+XXYY
+exit
+
+From the version 2.2.x use this other:
+
+cat > /etc/udev/rules.d/96-pmsdr.rules << XXYY
+#
+# udev rules file for Microchip 18F4455 USB Micro (PMSDR) 
+# SR version
+#
+ACTION=="add", SUBSYSTEM=="usb", SYSFS{idVendor}=="16c0", SYSFS{idProduct}=="05dc", GROUP="pmsdrusb"
+XXYY
+exit
+
+Now disconnect from current user and reconnect to allow the groups configuration to take effect.
+
+Next connect the pmsdr hardware and run lsusb command: you should see the device as Microchip;
+note the ID (04d8:000c) and the Bus/Device pair (Bus 004 Device 014).
+(In your setup the bus/device numbers will change).
+
+lsusb
+
+Bus 005 Device 002: ID 058f:6361 Alcor Micro Corp. 
+Bus 005 Device 001: ID 0000:0000  
+Bus 004 Device 014: ID 04d8:000c Microchip Technology, Inc. 
+Bus 004 Device 002: ID 046d:c016 Logitech, Inc. M-UV69a Optical Wheel Mouse
+Bus 004 Device 001: ID 0000:0000  
+Bus 003 Device 001: ID 0000:0000  
+Bus 002 Device 001: ID 0000:0000  
+Bus 001 Device 001: ID 0000:0000  
+
+Check for the right device group ownership:
+ 
+ ls -al /dev/bus/usb/004/014
+ crw-rw-r-- 1 root pmsdrusb 189, 397 2008-11-09 13:48 /dev/bus/usb/004/014
+
+start pmsdr
+
+$ ./pmsdr
+Linux PMSDR 2.0 control program, revision 41
+Original code by Martin Pernter IW3AUT
+IW3AUT - Martin Pernter - PMSDR USB Board (C) 2008
+Interface 0 claimed.
+Firmware reports version 2.0.2
+Open on /tmp/PMSDRcommands FIFO failed ! [No such file or directory]
+Input switched to standard input.
+---> 
+
+You must see the pmsdr's command line; 
+Test the frequency command:
+
+---> f 7050000
+
+New frequency: 7050000
+---> quit
+Transaction(s): 5 Sent: 18 Received: 27
+
+
+when issue a command or the program starts the red led on PMSDR briefly flashes.
+
+If the pmsdr refuses to start, complaining that is unable to load the libusb, 
+run the following command:
+
+sudo ldconfig
+
+
+
+----------------------------------------------------
+Installation notes for Mandriva 2010
+
+
+As root, install the following packages:
+
+urpmi gcc
+urpmi svn
+urpmi -a libusb1
+urpmi readline
+urpmi readline-devel
+
+As normal user compile with:
+
+gcc -D__USE_GNU -std=gnu99 -fgnu89-inline -Wall  -I. -g -O2  -lreadline  -lm   pmsdr.c  -o pmsdr -lusb-1.0 -lpthread -lrt
+
+
+
+-----------------------------------------------------
+Multi device usage notes
+
+Starting from revision 13, it is possible to operate multiple PMSDR hardware connected to the same computer.
+The key concept of this operation mode is: one process for each radio.
+In other words you have to run multiple pmsdr program instances (process), one for each PMSDR hardware
+that you link to your computer.
+
+Note that the standard working mode with a single PMSDR is unaffected.
+
+In order to select the right receiver, you can specify on the command line either
+
+a) the ordinal number (starting from zero) into the USB device list
+b) the USB bus where each device is linked
+
+In the first case you have to display the device list as follows:
+
+as follows:
+
+$ ./pmsdr -l
+Linux PMSDR 2.0/2.1 control program, revision 13
+Original code by Martin Pernter IW3AUT
+0: 1d6b:0002 (bus 1, device 1)
+1: 1d6b:0002 (bus 2, device 1)
+2: 1d6b:0001 (bus 3, device 1)
+3: 1d6b:0001 (bus 4, device 1)
+4: 04d8:000c (bus 4, device 2) ***
+5: 04d8:000c (bus 3, device 6) ***
+6: 04d9:1203 (bus 3, device 3)
+
+the row(s) with trailing asterisk are that relative to PMSDR hardware.
+
+Next you can start the two instances of pmsdr as follows:
+
+pmsdr -N4
+pmsdr -N5
+
+In case b) you can identify the hardware from the bus number:
+
+pmsdr -B4
+pmsdr -B3
+
+However note that in this case only one PMSDR for each bus is allowed, because the software
+does check only the first device found on each bus.
+
+Last, if you need to control the device from another process via the FIFO (named pipe),
+before to run each program,you have to define the environment variable PMSDR_FILE
+to point to the right FIFO:
+
+mkfifo /tmp/PMSDR_1
+export PMSDR_FILE="/tmp/PMSDR_1" ; ./pmsdr -B3
+mkfifo /tmp/PMSDR_2
+export PMSDR_FILE="/tmp/PMSDR_2" ; ./pmsdr -B4
+
+
+
+-----------------------------------------------------
+Simple socket (UDP) command interface
+
+Starting from Revision 14 there is in place a crude implementation of UDP socket.
+Note: the pmsdr binds to any address of machine on which runs, therefore is anyway reachable from
+LAN and possibly WAN connections. This could expose the machine itself to some harm.
+
+You can start pmsdr with -u option, specifying for an udp port:
+
+$ ./pmsdr -u 10000
+Linux PMSDR 2.0/2.1 control program, revision 14
+Original code by Martin Pernter IW3AUT
+IW3AUT - Martin Pernter - PMSDR USB Board (C) 2008
+Interface 0 claimed.
+Firmware reports version 2.1.4
+
+
+To test it, in another window, use the netcat utility:
+
+$ echo "f 7050000" | netcat -vv -u -w1 127.0.0.1 10000
+OK
+
+$ echo "quit" | netcat -vv -u -w1 127.0.0.1 10000
+Closing...
+
+
+To install netcat (on Ubuntu and other Debian derived), submit the following command:
+
+sudo apt-get install netcat-traditional
+
+
+If you want to run multiple PMSDR on the same machine, controlling them via udp,
+simply start each instance on a specific udp port.
+
+
+----------------------------------------------------
+PMSDR firmware upgrade to 2.1.7
+
+
+Install libusb 0.1.x and wget:
+
+sudo apt-get install libusb-0.1-4 libusb-dev wget
+
+Download and compile the fsusb package:
+
+cd
+wget http://www.internetking.org/fsusb/fsusb-0.1.11-2.tar.gz
+tar -zxvf fsusb-0.1.11-2.tar.gz
+cd fsusb-0.1.11-2
+make
+
+Download and unzip the firmware file from Martin' site:
+
+wget http://www.iw3aut.altervista.org/files/PMSDR_V21r7.zip
+unzip PMSDR_V21r7.zip
+
+You must have the .hex file into the current directory: 
+
+ls -l *.hex
+-rw-r--r-- 1 andrew andrew 93031 2010-02-14 21:53 PMSDR_V21r7.hex
+
+Double check the file length of file you get after unzip.
+If it is not equal to that shown above, repeat the procedure !
+
+
+Now unmount the cover of the PMSDR box and link your PMSDR to USB 
+interface.  Please be careful when the box cover is removed: don't touch 
+the internal components when the circuits is powered.  
+
+Look behind the USB connector and locate the two push buttons S1 and S2: 
+they are marked on the silkscreen too.
+
+Wait until the display show the usual messages and the green LED turn on, 
+press both the buttons labeled S1 and S2, located into the lower left 
+corner of PCB just behind the USB connector.  
+
+The display will be erased: release the S1 button and, after one second, the S2 button.
+When you release the S1 button the red LED will blink shortly.
+When you release the S2 button the red LED will light steady.
+
+Now the PMSDR is in bootloader mode with both green LED and red LED turned on.
+Moreover the PMSDR has renumbered on the USB bus: the VID:PID is now changed as follows:
+
+$ lsusb
+Bus 003 Device 022: ID 04d8:000b Microchip Technology, Inc. 
+
+Note that the PID must now read as 000b instead of 000c.
+
+The next step requires you run the fsusb program.
+!!! Please do not detach the USB cable while the loader program is running !!!
+
+$ sudo ./fsusb PMSDR_V21r7.hex
+Locating USB Microchip(tm) PICDEM-FS USB(tm) (vendor 0x04d8/product 0x000b)
+Found USB PICDEM-FS USB as device '022' on USB bus 003
+Communication established.  Onboard firmware version is 1.0
+Writing program memory successful
+Program memory validated
+
+Please ignore the message says that firmware version is 1.0: it refers to 
+the bootloader protocol and not to PMSDR firmware.  The programming lasts 
+about 30 seconds: when the fsusb program ends you have to reset the PMSDR 
+to recover the normal operation.  Press again the S1 button and the 
+display will show 
+
+FW-VERSION 2.1.7
+
+on the second row.
+
+Of course the previous procedure applies too to any subsequent release.
+
+$Rev: 22 $
+

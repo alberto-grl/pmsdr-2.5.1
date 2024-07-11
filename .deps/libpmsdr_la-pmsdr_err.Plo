@@ -1,0 +1,5 @@
+libpmsdr_la-pmsdr_err.lo: pmsdr_err.c /usr/include/stdc-predef.h \
+ /usr/lib/gcc/x86_64-linux-gnu/11/include/stdbool.h pmsdr.h
+/usr/include/stdc-predef.h:
+/usr/lib/gcc/x86_64-linux-gnu/11/include/stdbool.h:
+pmsdr.h:

@@ -1,0 +1,6 @@
+Sep 23 2010 21:00 UTC: r36  code cleaned.
+Sep 22 2010 22:00 UTC: r35  convenience commands to work on third harmonic added. Thanks to Francesco Marzano to provide the code.
+Sep 21 2010 20:53 UTC: r33  rmemf command added.
+Sep 20 2010 21:30 UTC: r32  Downconverter support added.
+Aug 19 2010 22:30 UTC: r23  Autoconf/automake package added.
+
